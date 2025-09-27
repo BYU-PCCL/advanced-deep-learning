@@ -65,31 +65,59 @@ def get_per_token_logps(logits, input_ids):
         token_log_prob = torch.gather(log_probs, dim=1, index=input_ids_row.unsqueeze(1)).squeeze(1)
         per_token_logps.append(token_log_prob)
     return torch.stack(per_token_logps)
-#from kernel.ce_kernel import fast_log_softmax_gather
-#get_per_token_logps = fast_log_softmax_gather
 
-def GRPO_step(batch, tokenizer_for_padding):
+def GRPO_step(batch, pad_token_id):
+    """Compute GRPO loss for a batch.
+    
+    Args:
+        batch: dict with keys:
+            'plen': (int) length of prompt (non-generated part)
+            'inputs': (torch.LongTensor) input token IDs, shape (B, L)
+            'rewards': (torch.FloatTensor) rewards for each sequence, shape (B,)
+            'refs': (torch.FloatTensor) reference log probabilities, shape (B, L-prompt_length)
+            'gen_logps' (optional): (torch.FloatTensor) generated log probabilities, shape
+                (B, L-prompt_length), needed if compute_gen_logps is True. In this lab, it will always be provided.
+        pad_token_id: (int) token ID used for padding, needed to create completion mask
+    Returns:
+        loss: (torch.FloatTensor) scalar GRPO loss for the batch
+    Note:
+        - Assumes `engine` and `beta`, `clip_param`, `compute_gen_log
+        - Uses `get_per_token_logps` to compute log probabilities
+        - Implements GRPO loss with optional PPO-style clipping
+        - Averages loss over completion tokens and batch
+        - Uses `pad_token_id` to create mask for completion tokens
+        - `engine` is the DeepSpeed engine with the model, it will be neccesary to move tensors to engine.device
+        - ~ 20 lines of code (excluding comments)
+    Example Input:
+            batch inputs shape: torch.Size([1, 196])
+            batch rewards shape: torch.Size([1])
+            batch refs shape: torch.Size([1, 22])
+            batch gen_logps shape: torch.Size([1, 22])
+    """
     prompt_length = batch['plen']
     inputs = batch['inputs'].to(engine.device)
-    advantages = batch['rewards'].to(engine.device).unsqueeze(1)
+    advantages = batch['rewards'].to(engine.device).unsqueeze(1) # (B, 1)
     logits = engine(inputs).logits
-    logits = logits[:, :-1, :]  # (B, L-1, V), exclude the last logit: it corresponds to the next token pred
-    input_ids = inputs[:, 1:]  # (B, L-1), exclude the first input ID since we don't have logits for it 
-    per_token_logps = get_per_token_logps(logits, input_ids)
-    per_token_logps = per_token_logps[:,prompt_length-1:]
-    ref_per_token_logps = batch['refs'].to(per_token_logps.device)
-    per_token_kl = torch.exp(ref_per_token_logps - per_token_logps) - (ref_per_token_logps - per_token_logps) - 1
-    completion_mask = (inputs[:, prompt_length:] != tokenizer_for_padding.pad_token_id).int()
-    if 'gen_logps' in batch:
-        ratio = torch.exp(per_token_logps - batch['gen_logps'].to(engine.device))
-        clipped_ratio = torch.clamp(ratio, 1-clip_param, 1+clip_param)
-        per_token_loss = torch.min(ratio * advantages, clipped_ratio * advantages)
-    else: 
-        per_token_loss = torch.exp(per_token_logps - per_token_logps.detach()) * advantages
-        assert compute_gen_logps is False
-    per_token_loss = -(per_token_loss - beta * per_token_kl)
-    loss = ((per_token_loss * completion_mask).sum(dim=1) / completion_mask.sum(dim=1)).mean()
-    return loss
+    B, L, V = logits.shape
+    logits = logits[:, :-1, :]  # (B, L-1, V)
+    input_ids = inputs[:, 1:]  # (B, L-1)
+    refs_per_token_logps = batch['refs']
+    gen_logps = batch.get('gen_logps', None)
+    assert gen_logps is not None
+    
+    # 1. Compute per-token log probabilities of the model
+    # 2. Slice to keep only completion tokens (after prompt)
+    # 3. Move reference log probabilities to the same device as per_token_logps
+    # 4. Compute per-token KL divergence approximation for regularization
+    # 5. Create mask for completion tokens (not padding)
+    # 6. Compute importance sampling ratio
+    # 7. Clip ratio for PPO-style loss
+    # 8. Compute per-token GRPO loss
+    # 9. Average loss over completion tokens and batch
+    # 10. Return final loss 
+
+    # TODO: Implement GRPO loss computation
+    pass
 
 
 def gen_worker(Q, physics_device):
@@ -126,19 +154,36 @@ def gen_worker(Q, physics_device):
 
     from math_verify import parse, verify, ExprExtractionConfig
     def reward_correct(item, answer):
-        pattern = r'\d+\.\d+|\d+/\d+|\d+'
-        nums = re.findall(pattern, answer) 
-        if len(nums) == 0: return -1.0
-        lastnum = nums[-1]
-        ans = parse(lastnum, extraction_config=[ExprExtractionConfig()])
-        ground_truth = parse(item["A"], extraction_config=[ExprExtractionConfig()])
-        return 1 if verify(ans, ground_truth) else -1
-    def reward_format(item, answer):
-        pattern = r"^<think>.*?</think>[\n ]*<answer>.*?</answer>$"
-        think_count = answer.count("<think>") + answer.count("</think>")
-        answer_count = answer.count("<answer>") + answer.count("</answer>")
-        return 1.25 if re.match(pattern, answer, re.DOTALL | re.VERBOSE) and think_count==2 and answer_count==2 else -1
+        """Extract the final numerical answer from the model's output and compare it to the ground truth answer.
+        
+        Args:
+            item: dict with keys 'Q' (question) and 'A' (ground truth answer)
+            answer: (str) model-generated answer string
+        Returns:
+            reward: (float) +1 if the final answer matches the ground truth, -1 otherwise
+        Note:
+            - Uses regex to extract the last number or fraction in the answer string
+            - Uses math_verify.parse and verify to compare the extracted answer to the ground truth
+            - Returns -1 if no number is found in the answer
+        """
+        # TODO: Implement reward_correct function
+        pass
 
+    def reward_format(item, answer):
+        """Check if the model's answer follows the required format with <think> and <answer> tags.
+        
+        Args:
+            item: dict with keys 'Q' (question) and 'A' (ground truth answer), not used here
+            answer: (str) model-generated answer string
+        Returns:
+            reward: (float) +1.25 if the answer matches the required format, -1 otherwise
+        Note:
+            - Uses regex to check for the presence of <think>...</think> and <answer>...</answer> tags
+            - Ensures there is exactly one pair of each tag
+            - Returns -1 if the format is incorrect
+        """
+        # TODO: Implement reward_format function
+        pass
 
     def gen_samples(inputs):
         prompts = [x["Q"] for x in inputs]
@@ -229,8 +274,6 @@ def gen_worker(Q, physics_device):
                 if r.content == b'tensor': ref_server_ver = 'tensor'
 
 
-# Use vLLM's tokenizer for consistency - will be passed from gen_worker
-# tokenizer = AutoTokenizer.from_pretrained(model_path)
 if __name__ == '__main__':
     import deepspeed
     deepspeed.init_distributed()
@@ -279,9 +322,8 @@ if __name__ == '__main__':
             print('waiting for batch...'); time.sleep(1)
             batch = get_batch()
 
-        # For now, use a fallback tokenizer for pad_token_id - ideally pass vLLM tokenizer
         fallback_tokenizer = AutoTokenizer.from_pretrained(model_path)
-        loss = GRPO_step(batch, fallback_tokenizer)
+        loss = GRPO_step(batch, pad_token_id=fallback_tokenizer.pad_token_id)
         engine.backward(loss)
         engine.step()
 
@@ -307,17 +349,6 @@ if __name__ == '__main__':
                 Q.put(state_dict)
                 print('[TRAINING PROC] send state_dict ok!')
             dist.barrier()
-
-        # if step % save_steps == 0:
-        #     dist.barrier()
-        #     if dist.get_rank() == 0:
-        #         print('saving model')
-        #         save_name = f"./step_{step}"
-        #         state_dict = engine.module.state_dict()
-        #         state_dict = type(state_dict)({k: v.cpu() for k, v in state_dict.items()})
-        #         engine.module.save_pretrained(save_name, state_dict=state_dict)
-        #         fallback_tokenizer.save_pretrained(save_name)
-        #     dist.barrier()
 
     # Finalize Weights & Biases
     if dist.get_rank() == 0:

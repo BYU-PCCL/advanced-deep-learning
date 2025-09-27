@@ -1,6 +1,7 @@
 import json, os, shutil, re, random, io, time
 import torch
 import os
+#os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 def tensor_to_bytes(t):
     buffer = io.BytesIO()
@@ -98,7 +99,12 @@ if __name__ == '__main__':
             print(f'[REF SERVER] Failed to reload model: {e}')
             return b'error'
     
-    def run_server(): bottle.run(app, host='0.0.0.0', port=59875, server='tornado')
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--port', type=int, default=59875)
+    args = parser.parse_args()
+
+    def run_server(): bottle.run(app, host='0.0.0.0', port=args.port, server='tornado')
     threading.Thread(target=run_server, daemon=False).start()
 
     while True:

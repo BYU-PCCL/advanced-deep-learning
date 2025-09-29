@@ -15,8 +15,6 @@ export REF_SERVER_PORT=${REF_SERVER_PORT:-59875}
 
 module load cuda/12.4.1-pw6cogp
 
-cd /home/olcottjp/advanced-deep-learning/grpo
-
 source .venv/bin/activate
 
 export HF_DATASETS_OFFLINE=1

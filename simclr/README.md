@@ -130,7 +130,7 @@ This lab will focus on implementing and replicating results from the SimCLR pape
 1. `ssh orc` to login to the supercomputer after making an ORC account and following the instructions above.
 2. `git clone https://github.com/BYU-PCCL/advanced-deep-learning.git`
 3. `cd simclr`
-4. This repository is uses `uv` which is a Python package and project manager, written in Rust [https://docs.astral.sh/uv/](https://docs.astral.sh/uv/). It is an extremely fast alternative to `pip`. You can install it with: `curl -LsSf [https://astral.sh/uv/install.sh](https://astral.sh/uv/install.sh) | sh`. `uv` manages dependencies in the `pyproject.toml` file. With PyTorch, different packages are used depending on the environment, so additional specifications in `pyproject.toml` are added to ensure we are using the correct version. You can learn more here: [https://docs.astral.sh/uv/guides/integration/pytorch/](https://docs.astral.sh/uv/guides/integration/pytorch/).
+4. This repository is uses `uv` which is a Python package and project manager, written in Rust [https://docs.astral.sh/uv/](https://docs.astral.sh/uv/). It is an extremely fast alternative to `pip`. You can install it with: `curl -LsSf https://astral.sh/uv/install.sh | sh`. `uv` manages dependencies in the `pyproject.toml` file. With PyTorch, different packages are used depending on the environment, so additional specifications in `pyproject.toml` are added to ensure we are using the correct version. You can learn more here: [https://docs.astral.sh/uv/guides/integration/pytorch/](https://docs.astral.sh/uv/guides/integration/pytorch/).
 
 ## 2.3 Setup
 

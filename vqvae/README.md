@@ -44,9 +44,10 @@ This trains FSQ with 16 levels and generates the outputs which should be compara
 
 ## Submission
 Once all experiments are complete, submit the following:
-- All individual reconstruction images (e.g., `images/vae.png`, `images/vqvae.png`, `images/myvqvae.png`, `images/fsq.png`).
-- Ensure the images demonstrate the model's performance on test data.
-- You can run all experiments in sequence using:
-```bash
-uv run src/main.py
-```
+1. All individual reconstruction images (e.g., `images/vae.png`, `images/vqvae.png`, `images/myvqvae.png`, `images/fsq.png`).
+  - Ensure the images demonstrate the model's performance on test data.
+  - You can run all experiments in sequence using:
+  ```bash
+  uv run src/main.py
+  ```
+2. Please also submit your code by downloading and submitting your three .py vae files.

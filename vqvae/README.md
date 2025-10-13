@@ -27,27 +27,22 @@ uv run src/main.py --exp vqvae
 This trains the VQVAE with a codebook size of 512 and generates the outputs which should be sharper than the VAE reconstructions.
 
 ### 3. Run Custom VQVAE Experiment
-1. Implement the forward pass in `src/my_vqvae.py` by following the instructions in the file. This will involve completing FOUR TODO sections: `calculate_distances`, `find_quantized_latents`, `normalize_with_ema`, and `apply_ste`.
+1. Implement the forward pass in `src/my_vector_quantizer.py` by following the instructions in the file. This will involve completing FOUR TODO sections: `calculate_distances`, `find_quantized_latents`, `normalize_with_ema`, and `apply_ste`.
 2. Run the custom VQVAE implementation (using `MyVectorQuantizer`).
 ```bash
 uv run src/main.py --exp myvqvae
 ```
 This uses your custom quantization layer for training and evaluation. The outputs should be similar to the standard VQVAE.
 
-### 4. Run FSQ Experiment
-1. Implement the forward pass in `src/fsq.py` as per the instructions in the file which involves completeing TWO TODO sections: the quantize method and the forward method.
-2. Finally, execute the FSQ model.
-```bash
-uv run src/main.py --exp fsq
 ```
 This trains FSQ with 16 levels and generates the outputs which should be comparable to the VQVAE results.
 
 ## Submission
 Once all experiments are complete, submit the following:
-1. All individual reconstruction images (e.g., `images/vae.png`, `images/vqvae.png`, `images/myvqvae.png`, `images/fsq.png`).
+1. All individual reconstruction images (e.g., `images/vae.png`, `images/vqvae.png`, `images/myvqvae.png`).
   - Ensure the images demonstrate the model's performance on test data.
   - You can run all experiments in sequence using:
   ```bash
   uv run src/main.py
   ```
-2. Please also submit your code by downloading and submitting your three .py vae files.
+2. Please also submit your code by downloading and submitting your three .py vae files (vae.py, vqvae.py, and my_vector_quantizer.py).

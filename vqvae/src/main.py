@@ -119,7 +119,7 @@ experiments = {
     'vae': ('VAE', VAE(latent_dim=512)),
     'vqvae': ('VQ-VAE', VQVAE(dim=128, codebook_size=512, custom=False)),
     'myvqvae': ('MyVQ-VAE', VQVAE(dim=128, codebook_size=512, custom=True)),
-    'fsq': ('FSQ', FSQ(dim=128, levels=16))
+    # 'fsq': ('FSQ', FSQ(dim=128, levels=16))
 }
 
 results = {}

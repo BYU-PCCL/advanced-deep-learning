@@ -156,29 +156,8 @@ def train_rectified_flow(
             batch_size = z1.shape[0]
             # TODO: Part 2
             ########################
-            # Sample a random time t for each sample in the batch [0, 1]
-            t = torch.rand(
-                (batch_size, 1),
-                device=device,
-            )
-            # Compute the interpolated point z_t at time t between z0 and z1
-            z_t = t * z1 + (1.0 - t) * z0
-
-            # Compute the target vector field
-            target = z1 - z0
-
-            # Predict the vector field at interpolated points
-            pred = rectified_flow(z_t, t)
-
-            # MSE
-            loss = (
-                (target - pred)
-                .view(batch_size, -1)
-                .abs()
-                .pow(2)
-                .sum(dim=1)
-                .mean()
-            )
+            loss = None
+            pass
             ##########################
 
             optimizer.zero_grad()
@@ -205,20 +184,7 @@ def sample(rectified_flow, T, pi_0_path):
     samples = [pi_0_path.clone().unsqueeze(0)]
     # TODO: Part 3
     #####################
-    for i in range(T):
-        last_sample = samples[-1]
-        t = (
-            torch.ones(
-                (batch_size, 1),
-                device=last_sample.device,
-            )
-            * i
-            / T
-        )
-        current_pos = last_sample.squeeze(0)
-        drift_pred = rectified_flow(current_pos, t)
-        samples.append((last_sample + drift_pred * 1.0 / T))
-    return torch.cat(samples)
+    pass
     ####################
 
 
@@ -237,23 +203,8 @@ def train_rectified_flow_mnist(
         for batch_idx, (z1, _) in enumerate(train_dataloader):
             # TODO: Part 4
             ##############
-            z1 = z1.to(device)
-            batch_size = z1.shape[0]
-
-            # Sample random noise as z0
-            z0 = torch.randn_like(z1)
-            # Sample random time
-            t = torch.rand((batch_size, 1), device=device)
-
-            # Interpolate
-            z_t = t.view(-1, 1, 1, 1) * z1 + (1.0 - t.view(-1, 1, 1, 1)) * z0
-            # Target velocity
-            target = z1 - z0
-
-            # Predict velocity
-            pred = rectified_flow(z_t, t)
-            # Loss
-            loss = (target - pred).pow(2).mean()
+            loss = None
+            pass
             ##############
 
             optimizer.zero_grad()
